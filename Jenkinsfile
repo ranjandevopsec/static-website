@@ -15,7 +15,7 @@ pipeline {
                 echo 'Pulling code from GitHub...'
 
                 git branch: 'main',
-                    url: 'https://github.com/USERNAME/static-website1.git'
+                    url: 'https://github.com/ranjandevopsec/static-website.git'
 
                 echo "Project Path: ${WORKSPACE}"
             }
