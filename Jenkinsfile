@@ -1,24 +1,35 @@
+
 pipeline {
     agent any
+
+    environment {
+        IMAGE_NAME = 'static-website:v1'
+        CONTAINER_NAME = 'static-website'
+        PORT = '8080'
+    }
 
     stages {
 
         stage('Checkout') {
             steps {
                 echo 'Pulling code from GitHub...'
-                checkout scm
+
+                git branch: 'main',
+                    url: 'https://github.com/USERNAME/static-website1.git'
+
+                echo "Project Path: ${WORKSPACE}"
             }
         }
 
         stage('Test') {
             steps {
-                echo 'Testing Static Website...'
+                echo 'Testing website files...'
 
                 powershell '''
-                if (!(Test-Path index.html)) {
-                    Write-Error "index.html not found"
-                    exit 1
-                }
+                    if (!(Test-Path "$env:WORKSPACE\\Dockerfile")) {
+                        throw "Dockerfile not found!"
+                    }
+                    Write-Host "Dockerfile found successfully"
                 '''
             }
         }
@@ -28,21 +39,24 @@ pipeline {
                 echo 'Building Docker Image...'
 
                 powershell '''
-                docker build -t static-website:latest .
-                if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+                    docker build -t static-website:v1 `
+                    -f "$env:WORKSPACE\\Dockerfile" `
+                    "$env:WORKSPACE"
                 '''
             }
         }
 
         stage('Deploy') {
             steps {
-                echo 'Deploying Website...'
+                echo 'Deploying website...'
 
                 powershell '''
-                docker rm -f static-website
-                docker run -d --name static-website -p 8080:80 static-website:latest
+                    docker rm -f static-website 2>$null
 
-                if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+                    docker run -d `
+                    --name static-website `
+                    -p 8080:80 `
+                    static-website:v1
                 '''
             }
         }
@@ -50,7 +64,7 @@ pipeline {
 
     post {
         success {
-            echo 'Website deployed successfully!'
+            echo 'Pipeline Successfully Completed!'
         }
 
         failure {
